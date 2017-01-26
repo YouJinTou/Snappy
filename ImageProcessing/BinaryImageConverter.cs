@@ -4,8 +4,7 @@
 
     public class BinaryImageConverter
     {
-        private const int NaiveThreshold = 100;
-        private const int NaiveBlackThreshold = 0;
+        private const int NaiveThreshold = 129;
 
         public Bitmap SaveAsBinaryImage(string inPath, string outPath)
         {
@@ -46,8 +45,7 @@
                 for (int x = 0; x < grayScale.Width; x++)
                 {
                     byte grayScaleColor = grayScale.GetPixel(x, y).R;
-                    Color binaryColor = (grayScaleColor < NaiveBlackThreshold) ? Color.White :
-                        (grayScaleColor > NaiveThreshold) ? Color.White : Color.Black;
+                    Color binaryColor = (grayScaleColor > NaiveThreshold) ? Color.White : Color.Black;
 
                     binaryBitmap.SetPixel(x, y, binaryColor);
                 }

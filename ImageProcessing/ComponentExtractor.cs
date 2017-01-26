@@ -3,13 +3,14 @@
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.IO;
     using System.Linq;
 
     public class ComponentExtractor
     {
         private const byte GrayScaleWhite = 255;
-        private const int HeightIgnoreThreshold = 5;
-        private const int HeightMergeSensitivity = 10;
+        private const int HeightIgnoreThreshold = 2;
+        private const int HeightMergeSensitivity = 15;
 
         private Bitmap binaryImage;
         private Pixel[,] matrix;
@@ -209,12 +210,12 @@
         private Rectangle TryMergeBlobs(Rectangle box, ICollection<Rectangle> boundingBoxes)
         {
             int topMidPoint = (box.X + (box.Width / 2));
-            int lowerBound = (box.Y - HeightMergeSensitivity - 1);
-            int bound = (lowerBound < 0 ? 0 : lowerBound);
+            int upperBound = (box.Y - HeightMergeSensitivity - 1);
+            upperBound = (upperBound < 0 ? 0 : upperBound);
 
-            for (int row = box.Y - 1; row >= bound; row--)
+            for (int row = box.Y - 1; row >= upperBound; row--)
             {
-                Pixel pixel = this.matrix[row, box.X];
+                Pixel pixel = this.matrix[row, topMidPoint];
                 bool nothingToMerge = (pixel.Color == GrayScaleWhite);
 
                 if (nothingToMerge)
