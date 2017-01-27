@@ -12,10 +12,13 @@
         private const int HeightIgnoreThreshold = 2;
         private const int WidthIgnoreThreshold = 1;
         private const int HeightMergeSensitivity = 15;
+        private const int WidthMergeSensitivity = 1;
+        private const int IntervalThreshold = 5;
 
         private Bitmap binaryImage;
         private Pixel[,] matrix;
         private HashSet<int> labels;
+        private Bitmap interval;
 
         public ComponentExtractor(Bitmap binaryImage)
         {
@@ -27,10 +30,31 @@
             this.LabelComponents();
         }
 
-        public ICollection<Bitmap> Extract()
+        public Bitmap Interval
+        {
+            get
+            {
+                if (this.interval.Height == 0)
+                {
+                    this.interval = new Bitmap(20, 20);
+
+                    for (int y = 0; y < this.interval.Height; y++)
+                    {
+                        for (int x = 0; x < this.interval.Width; x++)
+                        {
+                            this.interval.SetPixel(x, y, Color.White);
+                        }
+                    }
+                }
+
+                return this.interval;
+            }
+        }
+
+        public IList<Bitmap> Extract()
         {
             IList<Rectangle> boundingBoxes = new List<Rectangle>();
-            ICollection<Bitmap> components = new List<Bitmap>();
+            IList<Bitmap> components = new List<Bitmap>();
 
             foreach (int label in this.labels)
             {
@@ -56,11 +80,13 @@
                 blob = this.ResizeBlob(blob);
 
                 components.Add(blob);
+
+                this.InsertInterval(i, components, boundingBoxes);
             }
 
             return components;
         }
-
+        
         private Bitmap CropBlob(Rectangle box)
         {
             Bitmap blob = new Bitmap(box.Width, box.Height);
@@ -209,7 +235,7 @@
             return new Bitmap(blob, 20, 20);
         }
 
-        private Rectangle TryMergeBlobs(Rectangle box, ICollection<Rectangle> boundingBoxes)
+        private Rectangle TryMergeBlobs(Rectangle box, IList<Rectangle> boundingBoxes)
         {
             int topMidPoint = (box.X + (box.Width / 2));
             int upperBound = (box.Y - HeightMergeSensitivity - 1);
@@ -217,21 +243,15 @@
 
             for (int row = box.Y - 1; row >= upperBound; row--)
             {
-                Pixel pixel = this.matrix[row, topMidPoint];
-                bool nothingToMerge = (pixel.Color == GrayScaleWhite);
-
-                if (nothingToMerge)
-                {
-                    continue;
-                }
-
-                Rectangle boxToMergeWith = boundingBoxes.FirstOrDefault(b => b.Contains(pixel.X, pixel.Y));
+                Rectangle boxToMergeWith = boundingBoxes.FirstOrDefault(b => b.Contains(topMidPoint, row));
                 bool foundBox = (boxToMergeWith.Height > 0);
 
                 if (!foundBox)
                 {
                     continue;
                 }
+
+                boundingBoxes.Remove(boxToMergeWith);
 
                 int mergedX = (box.X <= boxToMergeWith.X ? box.X : boxToMergeWith.X);
                 int mergedWidth = (box.Right >= boxToMergeWith.Right ? box.Right : boxToMergeWith.Right) - mergedX;
@@ -241,12 +261,49 @@
                 return mergedBox;
             }
 
+            //int rightMidPoint = (box.Y + (box.Height / 2));
+            //int rightColBound = (box.Right + 1 + WidthMergeSensitivity);
+
+            //for (int x = box.Right + 1; x <= rightColBound; x++)
+            //{
+            //    Rectangle boxToMergeWith = boundingBoxes.FirstOrDefault(b => b.Contains(x, rightMidPoint));
+            //    bool foundBox = (boxToMergeWith.Height > 0);
+
+            //    if (!foundBox)
+            //    {
+            //        continue;
+            //    }
+
+            //    int mergedY = (box.Y <= boxToMergeWith.Y) ? box.Y : boxToMergeWith.Y;
+            //    int mergedWidth = (boxToMergeWith.Right - box.Left);
+            //    int mergedBottom = (box.Bottom >= boxToMergeWith.Bottom) ? box.Bottom : boxToMergeWith.Bottom;
+            //    int mergedHeight = (mergedBottom - mergedY);
+            //    Rectangle mergedBox = new Rectangle(box.X, mergedY, mergedWidth, mergedHeight);
+
+            //    return mergedBox;
+            //}
+
             return box;
         }
 
+        private void InsertInterval(int index, IList<Bitmap> components, IList<Rectangle> boundingBoxes)
+        {
+            if (index == boundingBoxes.Count - 1)
+            {
+                return;
+            }
+
+            bool shouldInsertInterval = ((boundingBoxes[index + 1].Left - boundingBoxes[index].Right) > IntervalThreshold);
+
+            if (shouldInsertInterval)
+            {
+                components.Add(interval);
+            }
+        }
+        
         private IList<Rectangle> SortComponents(IList<Rectangle> components)
         {
-            int naiveBottomDeviation = 10;
+            int naiveBottomDeviation = 20;
 
             for (int i = 0; i < components.Count - 1; i++)
             {

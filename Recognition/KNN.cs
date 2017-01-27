@@ -56,7 +56,7 @@
                 }   
             }
 
-            return bestLabel;
+            return (bestLabel == '.') ? ' ' : bestLabel;
         }
 
         private void LoadTrainingData()
