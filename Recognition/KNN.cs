@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Drawing;
     using System.IO;
+    using System.Linq;
 
     public class KNN
     {
@@ -16,25 +17,46 @@
             this.LoadTrainingData();
         }
 
-        public string Classify(Bitmap blob)
+        public char Classify(Bitmap blob)
         {
-            IDictionary<char, int> knn = new Dictionary<char, int>();
+            IList<Neighbor> knn = new List<Neighbor>();
 
-            foreach (ICollection<Bitmap> classValues in this.trainingData.Values)
+            foreach (var entry in this.trainingData)
             {
-                foreach (Bitmap trainingBlob in classValues)
+                foreach (Bitmap trainingBlob in entry.Value)
                 {
-                    for (int row = 0; row < trainingBlob.Height; row++)
-                    {
-                        for (int col = 0; col < trainingBlob.Width; col++)
-                        {
+                    double distance = 0.0;
 
+                    for (int y = 0; y < trainingBlob.Height; y++)
+                    {
+                        for (int x = 0; x < trainingBlob.Width; x++)
+                        {
+                            int blobPixelColor = blob.GetPixel(x, y).R;
+                            int trainingPixelColor = trainingBlob.GetPixel(x, y).R;
+                            distance += Math.Pow(blobPixelColor - trainingPixelColor, 2);
                         }
                     }
-                }                
+
+                    distance = Math.Sqrt(distance);
+
+                    knn.Add(new Neighbor(entry.Key, distance));
+                }
+            }
+                       
+            var neighborGroups = knn.OrderBy(n => n.Distance).Take(K).GroupBy(n => n.ClassLabel);
+            int highestCount = 0;
+            char bestLabel = ' ';
+
+            foreach (var group in neighborGroups)
+            {
+                if (highestCount < group.Count())
+                {
+                    bestLabel = group.Key;
+                    highestCount = group.Count();
+                }   
             }
 
-            return null;
+            return bestLabel;
         }
 
         private void LoadTrainingData()

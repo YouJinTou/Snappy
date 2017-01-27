@@ -10,6 +10,7 @@
     {
         private const byte GrayScaleWhite = 255;
         private const int HeightIgnoreThreshold = 2;
+        private const int WidthIgnoreThreshold = 1;
         private const int HeightMergeSensitivity = 15;
 
         private Bitmap binaryImage;
@@ -43,8 +44,9 @@
             for (int i = 0; i < boundingBoxes.Count; i++)
             {
                 Rectangle box = boundingBoxes[i];
+                bool shouldSkip = (box.Height <= HeightIgnoreThreshold || box.Width <= WidthIgnoreThreshold);
 
-                if (box.Height <= HeightIgnoreThreshold)
+                if (shouldSkip)
                 {
                     continue;
                 }
