@@ -34,7 +34,7 @@
         {
             get
             {
-                if (this.interval.Height == 0)
+                if (this.interval == null)
                 {
                     this.interval = new Bitmap(20, 20);
 
@@ -293,11 +293,12 @@
                 return;
             }
 
-            bool shouldInsertInterval = ((boundingBoxes[index + 1].Left - boundingBoxes[index].Right) > IntervalThreshold);
+            bool shouldInsertInterval = ((boundingBoxes[index + 1].Left - boundingBoxes[index].Right) > IntervalThreshold || 
+                (boundingBoxes[index + 1].Bottom - boundingBoxes[index].Bottom) > IntervalThreshold);
 
             if (shouldInsertInterval)
             {
-                components.Add(interval);
+                components.Add(Interval);
             }
         }
         
